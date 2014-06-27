@@ -7,7 +7,6 @@
 #####2:标记一个对象，在遍历该对象的所有内存后，一旦发现对应的内存没有被任意对象持有,此时不是立即删除，而是把占有内存的对象向左移动！在这个过程中，就避免了内存碎片的问题了。
 #####3:采用to-from的方法:把整个堆的内存一分为2，其中一部分是当前所有已经分配出去的内存，另外一部分是与之相等大小的内存快。当to部分的内存使用完毕，这个时候就会扫描to中的内存，把全部内存重新拷贝到from内存快中。在这个过程中，由于内存经过重建新排序，所以不会造成了内存碎片。但是可使用的堆内存大大减少！
 #####从上面的方法可以看出。GC的行为，会导致内存泄漏,又或者通过不断的扫描内存实现的。
-
 ####关于GC的弊端，请看这篇文章[GC是错误的内存管理模式](http://microcai.org/2013/07/27/gc-is-wrong-way-of-doing-memory-managment.html)
 #### 文章全文
 ><p style="text-indent: 2em"> 只要写程序, 就免不了要和各种资源打交道, 其中最频繁的莫过于内存了。<p>
@@ -25,3 +24,36 @@
 <p style="text-indent: 2em">C++ 标准的第二次尝试就是纳入了 std::sharedptr , sharedptr 在进入 C++11 标准之前, 已经在 Boost 库里实践了相当长的时间.<p>
 <p style="text-indent: 2em">首先得益于 C++ 的模板技术, shared_ptr 只需实现一次, 即变成可用于任何类型的指针. 其次, 得益于 C++ 的自动生命期管理, 智能指针将需要程序员管理的堆对象也变成了能利用编译器自动管理的自动变量.也就是, 智能指针彻底的将 delete 关键字 变成了 sharedptr 才能使用的内部技术. **编译器能自动删除 sharedptr 对象, 也就是编译器能自动的发出 delete 调用.**模板是智能指针技术必不可少的一部分, 否则要利用 RAII 实现智能指针就只能利用 "单根继承" 这一老土办法了. 没错, 这也是 MFC 使用的. ( MFC 诞生在 模板还没有加入 C++ 的年代 )直到1998 年 C++ 标准纳入了模板, C++ 才最终具备了实现自动内存管理所必须的特性。<p>
 <p style="text-indent: 2em">但是准备好这些特性, 到利用这些特性发明出真正能用的智能指针, 则又花了13年的时间. ( 2011年加入了 shared_ptr. )发明出编译器实现的自动内存管理需要时间, C++ 花了 30年的时间. 没有耐心的语言走了捷径, GC 就是这条捷径。<p>
+
+####show you the code
+```c++
+// shared_ptr constructor example
+struct C {int* data;};
+int main () {
+  std::shared_ptr<int> p1;
+  std::shared_ptr<int> p2 (nullptr);
+  std::shared_ptr<int> p3 (new int);
+  std::shared_ptr<int> p4 (new int, std::default_delete<int>());
+  std::shared_ptr<int> p5 (new int, [](int* p){delete p;}, std::allocator<int>());
+  std::shared_ptr<int> p6 (p5);
+  std::shared_ptr<int> p7 (std::move(p6));
+  std::shared_ptr<int> p8 (std::unique_ptr<int>(new int));
+  std::shared_ptr<C> obj (new C);
+  std::shared_ptr<int> p9 (obj, obj->data);
+
+  std::cout << "use_count:\n";
+  std::cout << "p1: " << p1.use_count() << '\n';
+  std::cout << "p2: " << p2.use_count() << '\n';
+  std::cout << "p3: " << p3.use_count() << '\n';
+  std::cout << "p4: " << p4.use_count() << '\n';
+  std::cout << "p5: " << p5.use_count() << '\n';
+  std::cout << "p6: " << p6.use_count() << '\n';
+  std::cout << "p7: " << p7.use_count() << '\n';
+  std::cout << "p8: " << p8.use_count() << '\n';
+  std::cout << "p9: " << p9.use_count() << '\n';
+  return 0;
+}
+```
+
+#####通过以上的代码，我们可以看到，我们严格的控制了对象的构造以及释放。由于可以传入一个回调函数到智能指针中，不管是内存，还是系统中的锁，文件句柄等资源。释放都不再是问题了！
+
