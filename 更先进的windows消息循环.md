@@ -40,3 +40,5 @@ while( (bRet = GetMessage( &msg, hWnd, 0, 0 )) != 0)
     }
 ```
 #####*MsgWaitForMultipleObjects*在接受到UI消息的时候，他就会被触发，并且可以通过 *参数一* 和 *参数二*，传入各种资源句柄进行等待！
+#####更详细的代码，我会单独建立一个工程，然后把整个windows的消息机制封装进去。希望可以帮助到以后需要写UI库的童鞋。毕竟在windows上的UI库都无法离开这个消息循环。
+
